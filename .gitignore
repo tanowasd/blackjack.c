@@ -1,3 +1,8 @@
 asso.ico
 risorse.rc
 risorse.res
+.vscode
+vcpkg
+raylib.dll
+raylib.pdb
+glfw3.dll

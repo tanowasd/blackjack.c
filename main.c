@@ -1,116 +1,135 @@
+#include "raylib.h"
 #include <stdio.h>
-#include <time.h>
 #include <stdlib.h>
+#include <time.h>
 
-// Funzione per il calcolo della vittoria
-int calcola_vittoria(int dealersum, int somma, int puntata, int budget) {
+// --- LOGICA DI GIOCO ---
+int calcola_vittoria_grafico(int dealersum, int somma, int puntata, int* budget, char* messaggio) {
     if (somma > 21) {
-        printf("\nHai perso %d punti perché hai sballato.\n", puntata);
-        return budget;
+        sprintf(messaggio, "SBALLATO! Hai perso %d punti.", puntata);
+        return 0; 
     }
-
     while (dealersum < 17) {
         dealersum += (rand() % 10) + 1;
     }
-
-    printf("\nIl dealer si ferma a: %d. Tu hai: %d.\n", dealersum, somma);
-
-    if (dealersum > 21) {
-        printf("Il dealer ha sballato! Hai vinto %d punti.\n", puntata * 2);
-        budget += (puntata * 2);
+    if (dealersum > 21 || somma > dealersum) {
+        sprintf(messaggio, "VINTO! Il dealer ha %d. Guadagni %d.", dealersum, puntata * 2);
+        *budget += (puntata * 2);
     } 
-
     else if (dealersum > somma) {
-        printf("Il dealer ha vinto! Hai perso la tua puntata.\n");
+        sprintf(messaggio, "PERSO! Il dealer ha %d.", dealersum);
     } 
-
-    else if (dealersum < somma) {
-        printf("Hai vinto! Hai guadagnato %d punti.\n", puntata * 2);
-        budget += (puntata * 2);
-    } 
-
     else {
-        printf("Pareggio (Push)! Ti vengono restituiti %d punti.\n", puntata);
-        budget += puntata;
+        sprintf(messaggio, "PAREGGIO! Il dealer ha %d. Riprendi %d.", dealersum, puntata);
+        *budget += puntata;
     }
-
-    return budget;
+    return dealersum;
 }
 
-int main() {
-    int carta1, carta2, somma, asso, dealersum, budget, puntata;
-    char scelta, scelta_carta;
-    
+int main(void) {
+    const int screenWidth = 800;
+    const int screenHeight = 600;
+    InitWindow(screenWidth, screenHeight, "Blackjack - Slider Puntata");
+    SetTargetFPS(60);
     srand(time(NULL));
-    budget = 10;
 
-    printf("====BLACK-JACK====\n");
+    int budget = 100;
+    int puntata = 10;
+    int sommaGiocatore = 0;
+    int dealersum = 0;
+    bool turnoFinito = false;
+    bool partitaInCorso = false;
+    char messaggioEsito[100] = "Trascina la barra per puntare e premi Nuova Mano";
 
-    do {
-        printf("==================\n");
-        printf("Il tuo budget ammonta a %d punti.\n", budget);
+    // --- NOTE: CUSTOMIZZAZIONE SLIDER ---
+    Rectangle sliderBar = { 500, 50, 250, 10 }; // Posizione e lunghezza barra
+    float sliderPos = 550; // Posizione iniziale del cursore (X)
+    bool dragging = false;
 
-        do {
-            printf("Quanto vuoi puntare? ");
-            scanf("%d", &puntata);
-            if (puntata > budget) printf("Non hai abbastanza punti!\n");
-        } while (puntata > budget || puntata <= 0);
-    
-        budget = budget - puntata;
+    Rectangle btnNuovaMano = { 50, 500, 150, 50 };
+    Rectangle btnHit = { 250, 500, 150, 50 };
+    Rectangle btnStand = { 450, 500, 150, 50 };
 
-        carta1 = (rand() % 11) + 1;
-        carta2 = (rand() % 11) + 1;
+    while (!WindowShouldClose()) {
+        Vector2 mousePos = GetMousePosition();
 
-        if (carta1 == 11 || carta2 == 11) {
-            printf("Hai trovato un asso! Vuoi farlo valere 1 o 11? ");
-            scanf("%d", &asso);
-            if (asso == 1) {
-                if (carta1 == 11) carta1 = 1;
-                else if (carta2 == 11) carta2 = 1;
+        // --- LOGICA SLIDER ---
+        if (!partitaInCorso || turnoFinito) {
+            // Inizia trascinamento
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && 
+                CheckCollisionPointCircle(mousePos, (Vector2){sliderPos, sliderBar.y + 5}, 15)) {
+                dragging = true;
+            }
+            if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) dragging = false;
+
+            if (dragging) {
+                sliderPos = mousePos.x;
+                // Limiti della barra
+                if (sliderPos < sliderBar.x) sliderPos = sliderBar.x;
+                if (sliderPos > sliderBar.x + sliderBar.width) sliderPos = sliderBar.x + sliderBar.width;
+
+                // Calcolo puntata proporzionale: (Posizione attuale / Lunghezza totale) * Budget
+                float percentuale = (sliderPos - sliderBar.x) / sliderBar.width;
+                puntata = (int)(percentuale * budget);
+                if (puntata < 1) puntata = 1; // Puntata minima 1
             }
         }
-    
-        somma = carta1 + carta2;
-        printf("Le tue carte sono: %d e %d. La cui somma equivale a %d\n", carta1, carta2, somma);
 
-        while (somma < 21)
-        {
-            printf("Vuoi un altra carta? (y/n)");
-            scanf(" %c", &scelta_carta);
-
-            if (scelta_carta == 'y')
-            {
-                int nuova_carta = (rand() % 11) + 1;
-                somma += nuova_carta;
-                printf("Hai pescato %d. Nuova somma: %d", nuova_carta, somma);
-            } else {
-                break;
+        // --- LOGICA BOTTONI ---
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (CheckCollisionPointRec(mousePos, btnNuovaMano) && (!partitaInCorso || turnoFinito) && budget > 0) {
+                budget -= puntata;
+                sommaGiocatore = ((rand() % 10) + 1) + ((rand() % 10) + 1);
+                dealersum = (rand() % 10) + 1;
+                sprintf(messaggioEsito, "Partita avviata! Puntata: %d", puntata);
+                partitaInCorso = true;
+                turnoFinito = false;
+            }
+            if (partitaInCorso && !turnoFinito && CheckCollisionPointRec(mousePos, btnHit)) {
+                sommaGiocatore += (rand() % 10) + 1;
+                if (sommaGiocatore > 21) {
+                    calcola_vittoria_grafico(0, sommaGiocatore, puntata, &budget, messaggioEsito);
+                    turnoFinito = true;
+                }
+            }
+            if (partitaInCorso && !turnoFinito && CheckCollisionPointRec(mousePos, btnStand)) {
+                dealersum = calcola_vittoria_grafico(dealersum, sommaGiocatore, puntata, &budget, messaggioEsito);
+                turnoFinito = true;
             }
         }
-        
-        if (somma > 21) {
-            printf("Sballato! Hai superato 21.\n");
-        }
 
-        dealersum = (rand() % 11) + 10; 
+        BeginDrawing();
+            ClearBackground(DARKGREEN);
 
-        budget = calcola_vittoria(dealersum, somma, puntata, budget);
-        
-        printf("Budget attuale: %d\n", budget);
+            // Disegno Slider
+            DrawText("SCOMMESSA", sliderBar.x, sliderBar.y - 25, 15, GOLD);
+            DrawRectangleRec(sliderBar, LIGHTGRAY); // Barra sfondo
+            // --- NOTE: CUSTOMIZZAZIONE CURSORE ---
+            DrawCircle(sliderPos, sliderBar.y + 5, 12, dragging ? RED : MAROON); 
+            
+            // UI Testi
+            DrawText(TextFormat("BUDGET: %d", budget), 20, 20, 25, GOLD);
+            DrawText(TextFormat("PUNTATA ATTUALE: %d", puntata), 500, 80, 20, WHITE);
+            DrawText(messaggioEsito, screenWidth/2 - MeasureText(messaggioEsito, 20)/2, 300, 20, RAYWHITE);
 
-        if (budget <= 0) {
-            printf("Hai esaurito il budget!\n");
-            break;
-        }
+            if (partitaInCorso) {
+                DrawText(TextFormat("TU: %d", sommaGiocatore), screenWidth/2 - 50, 400, 40, WHITE);
+                if (turnoFinito) DrawText(TextFormat("BANCO: %d", dealersum), screenWidth/2 - 70, 150, 30, LIGHTGRAY);
+                else DrawText("BANCO: ?", screenWidth/2 - 70, 150, 30, LIGHTGRAY);
+            }
 
-        do {
-            printf("Vuoi giocare di nuovo? (y/n): ");
-            scanf(" %c", &scelta); 
-        } while (scelta != 'y' && scelta != 'n');
+            // Disegno Bottoni
+            DrawRectangleRec(btnNuovaMano, CheckCollisionPointRec(mousePos, btnNuovaMano) ? ORANGE : DARKGRAY);
+            DrawText("NUOVA MANO", btnNuovaMano.x + 15, btnNuovaMano.y + 15, 18, WHITE);
 
-    } while (scelta == 'y' && budget > 0);
-
-    printf("Grazie per aver giocato con noi!\n");
-
+            if (partitaInCorso && !turnoFinito) {
+                DrawRectangleRec(btnHit, CheckCollisionPointRec(mousePos, btnHit) ? LIGHTGRAY : GRAY);
+                DrawText("HIT", btnHit.x + 55, btnHit.y + 15, 20, BLACK);
+                DrawRectangleRec(btnStand, CheckCollisionPointRec(mousePos, btnStand) ? LIGHTGRAY : GRAY);
+                DrawText("STAND", btnStand.x + 45, btnStand.y + 15, 20, BLACK);
+            }
+        EndDrawing();
+    }
+    CloseWindow();
     return 0;
 }
