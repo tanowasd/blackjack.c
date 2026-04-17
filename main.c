@@ -4,26 +4,31 @@
 
 // Funzione per il calcolo della vittoria
 int calcola_vittoria(int dealersum, int somma, int puntata, int budget) {
-    if (dealersum < 14) {
+    if (somma > 21) {
+        printf("\nHai perso %d punti perché hai sballato.\n", puntata);
+        return budget;
+    }
+
+    while (dealersum < 17) {
         dealersum += (rand() % 10) + 1;
     }
 
-    printf("\nIl dealer ha: %d. Tu hai: %d.\n", dealersum, somma);
+    printf("\nIl dealer si ferma a: %d. Tu hai: %d.\n", dealersum, somma);
 
-    if (somma > 21) {
-        printf("Hai sballato! Perdi %d punti.\n", puntata);
-    } 
-    else if (dealersum > 21) {
+    if (dealersum > 21) {
         printf("Il dealer ha sballato! Hai vinto %d punti.\n", puntata * 2);
         budget += (puntata * 2);
     } 
+
     else if (dealersum > somma) {
         printf("Il dealer ha vinto! Hai perso la tua puntata.\n");
     } 
+
     else if (dealersum < somma) {
         printf("Hai vinto! Hai guadagnato %d punti.\n", puntata * 2);
         budget += (puntata * 2);
     } 
+
     else {
         printf("Pareggio (Push)! Ti vengono restituiti %d punti.\n", puntata);
         budget += puntata;
@@ -34,7 +39,7 @@ int calcola_vittoria(int dealersum, int somma, int puntata, int budget) {
 
 int main() {
     int carta1, carta2, somma, asso, dealersum, budget, puntata;
-    char scelta;
+    char scelta, scelta_carta;
     
     srand(time(NULL));
     budget = 10;
@@ -56,8 +61,6 @@ int main() {
         carta1 = (rand() % 11) + 1;
         carta2 = (rand() % 11) + 1;
 
-        printf("Le tue carte sono: %d e %d.\n", carta1, carta2);
-
         if (carta1 == 11 || carta2 == 11) {
             printf("Hai trovato un asso! Vuoi farlo valere 1 o 11? ");
             scanf("%d", &asso);
@@ -69,6 +72,25 @@ int main() {
     
         somma = carta1 + carta2;
         printf("Le tue carte sono: %d e %d. La cui somma equivale a %d\n", carta1, carta2, somma);
+
+        while (somma < 21)
+        {
+            printf("Vuoi un altra carta? (y/n)");
+            scanf(" %c", &scelta_carta);
+
+            if (scelta_carta == 'y')
+            {
+                int nuova_carta = (rand() % 11) + 1;
+                somma += nuova_carta;
+                printf("Hai pescato %d. Nuova somma: %d", nuova_carta, somma);
+            } else {
+                break;
+            }
+        }
+        
+        if (somma > 21) {
+            printf("Sballato! Hai superato 21.\n");
+        }
 
         dealersum = (rand() % 11) + 10; 
 
