@@ -2,9 +2,8 @@
 #include <time.h>
 #include <stdlib.h>
 
-// La funzione ora restituisce il budget aggiornato correttamente
+// Funzione per il calcolo della vittoria
 int calcola_vittoria(int dealersum, int somma, int puntata, int budget) {
-    // Logica pescata dealer
     if (dealersum < 14) {
         dealersum += (rand() % 10) + 1;
     }
@@ -13,7 +12,6 @@ int calcola_vittoria(int dealersum, int somma, int puntata, int budget) {
 
     if (somma > 21) {
         printf("Hai sballato! Perdi %d punti.\n", puntata);
-        // Il budget è già stato scalato al momento della puntata
     } 
     else if (dealersum > 21) {
         printf("Il dealer ha sballato! Hai vinto %d punti.\n", puntata * 2);
@@ -38,7 +36,7 @@ int main() {
     int carta1, carta2, somma, asso, dealersum, budget, puntata;
     char scelta;
     
-    srand(time(NULL)); // Inizializzato una sola volta all'inizio
+    srand(time(NULL));
     budget = 10;
 
     printf("====BLACK-JACK====\n");
@@ -47,7 +45,6 @@ int main() {
         printf("==================\n");
         printf("Il tuo budget ammonta a %d punti.\n", budget);
 
-        // Controllo puntata
         do {
             printf("Quanto vuoi puntare? ");
             scanf("%d", &puntata);
@@ -56,13 +53,11 @@ int main() {
     
         budget = budget - puntata;
 
-        // Generazione carte (1-11)
         carta1 = (rand() % 11) + 1;
         carta2 = (rand() % 11) + 1;
 
         printf("Le tue carte sono: %d e %d.\n", carta1, carta2);
 
-        // Gestione Asso
         if (carta1 == 11 || carta2 == 11) {
             printf("Hai trovato un asso! Vuoi farlo valere 1 o 11? ");
             scanf("%d", &asso);
@@ -75,10 +70,8 @@ int main() {
         somma = carta1 + carta2;
         printf("Le tue carte sono: %d e %d. La cui somma equivale a %d\n", carta1, carta2, somma);
 
-        // Generazione punteggio dealer
         dealersum = (rand() % 11) + 10; 
 
-        // Una sola chiamata a calcola_vittoria
         budget = calcola_vittoria(dealersum, somma, puntata, budget);
         
         printf("Budget attuale: %d\n", budget);
@@ -88,7 +81,6 @@ int main() {
             break;
         }
 
-        // Ciclo per scelta giocare ancora (con spazio in scanf per pulire il buffer)
         do {
             printf("Vuoi giocare di nuovo? (y/n): ");
             scanf(" %c", &scelta); 
